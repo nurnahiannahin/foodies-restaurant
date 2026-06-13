@@ -7,6 +7,16 @@ import { useEffect, useState } from "react"
 
 const Reservation = () => {
 
+    const [mounted, setMounted] = useState(false)
+
+    // This code only runs on the client after the component is added to the DOM
+    useEffect(() => {
+        setMounted(true)
+    }, [])
+
+    // If not mounted yet, render nothing or a simple loading state
+    if (!mounted) return null
+
     const [name, setName] = useState('')
     const [phone, setPhone] = useState('')
     const [date, setDate] = useState('')
