@@ -11,55 +11,74 @@ interface MenuItem {
     price: number;
     category?: string;
     image_url: string;
-    available?: boolean; // Fixed typo
+    available?: boolean;
     created_at: string;
 }
 
 const Menus = () => {
     const [data, setData] = useState<MenuItem[]>([])
-    const [loading, setLoading] = useState(true) // Added loading state
-    const [error, setError] = useState<string | null>(null) // Added error state
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchData = async () => {
             setLoading(true)
             const { data, error } = await supabase.from('menu_items').select('*')
-            
             if (error) {
                 setError(error.message)
             } else {
-                console.log("Fetched Data:", data); // Check your browser console
                 setData(data as MenuItem[])
             }
             setLoading(false)
         }
-
         fetchData()
     }, [])
 
-    if (loading) return <div>Loading menu...</div>
-    if (error) return <div>Error loading menu: {error}</div>
+    if (loading) return <div className="text-center py-20 text-gray-500">Loading our signature dishes...</div>
+    if (error) return <div className="text-center py-20 text-red-500">Error loading menu: {error}</div>
 
     return (
-        <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
+    <div className="w-full px-6 py-12 md:px-12">
+        {/* Adjusted Grid: Increased gap for balance, 2 columns on lg screens */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 md:gap-16">
             {data.map((menuItem) => (
-                <div key={menuItem.id} className="border p-4 rounded-lg">
-                    {/* Ensure image_url is a valid path */}
+            <div 
+                key={menuItem.id} 
+                className="flex flex-col gap-4 group"
+            >
+                {/* Image: Reduced height for better screen fit */}
+                <div className="relative w-full h-[250px] md:h-[300px] rounded-3xl overflow-hidden shadow-lg">
+                {menuItem.image_url && (
                     <Image 
-                        // Fallback to a placeholder if image_url is null or empty
-                        src={menuItem.image_url || '/placeholder-image.png'} 
-                        alt={menuItem.name} 
-                        width={400} 
-                        height={300} 
-                        className="w-full h-48 object-cover rounded-md mb-4" 
+                        src={menuItem.image_url} 
+                        alt={menuItem.name}
+                        fill
+                        className="object-cover transition-transform duration-500 group-hover:scale-105"
+                        sizes="(max-width: 768px) 100vw, 50vw"
                     />
-                    <h2 className="text-xl font-bold">{menuItem.name}</h2>
-                    <p className="text-gray-600">{menuItem.description}</p>
-                    <p className="font-semibold mt-2">Price: ${menuItem.price}</p>
+                )}
                 </div>
+                
+                {/* Content: Adjusted text sizes for better hierarchy */}
+                <div className="flex flex-col gap-1 px-1">
+                <div className="flex justify-between items-baseline gap-4">
+                    <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
+                    {menuItem.name}
+                    </h1>
+                    <span className="text-xl md:text-2xl font-bold text-teal-600 whitespace-nowrap">
+                    Tk. {menuItem.price}
+                    </span>
+                </div>
+                
+                <p className="text-base md:text-lg text-gray-600 leading-relaxed">
+                    {menuItem.description}
+                </p>
+                </div>
+            </div>
             ))}
-        </section>
-    )
+        </div>
+    </div>
+  );
 }
 
 export default Menus

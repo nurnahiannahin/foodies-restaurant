@@ -1,9 +1,8 @@
 'use client'
 
 import { supabase } from '@/lib/supabaseClient'
-import Image from 'next/image'
 import { useEffect, useState } from 'react'
-
+import { useRouter } from 'next/navigation'
 
 interface MenuItem {
     id: number;
@@ -12,7 +11,7 @@ interface MenuItem {
     price: number;
     category?: string;
     image_url: string;
-    available?: boolean; // Fixed typo
+    available?: boolean;
     created_at: string;
 }
 
@@ -20,206 +19,191 @@ interface Reservation {
     id: number;
     name: string;
     phone: string;
-    date: string; // Change from Date to string
+    date: string;
     time: string;
     guests: number;
     message?: string;
 }
 
-const page = () => {
+const Page = () => {
+
+    const router = useRouter()
+    const [authChecked, setAuthChecked] = useState(false)
+    const [imageFile, setImageFile] = useState<File | null>(null)
+
+    useEffect(() => {
+        const checkAuth = async () => {
+            const { data: { session } } = await supabase.auth.getSession()
+            if (!session) {
+                router.push('/admin')
+            } else {
+                setAuthChecked(true)
+            }
+        }
+        checkAuth()
+    }, [])
 
     const [reservationList, setReservationList] = useState<Reservation[]>([])
-
     const [menu, setMenu] = useState<MenuItem[]>([])
-    const [error, setError] = useState<string | null>(null) // Added error state
+    const [error, setError] = useState<string | null>(null)
 
-    const [available, setAvailable] = useState('')
-
-    useEffect(() => {
-      const fetchData = async () => {
+    const fetchData = async () => {
         const { data, error } = await supabase.from('menu_items').select('*')
-
-        if (error) {
-            setError(error.message)
-        } else {
-            setMenu(data as MenuItem[])
-        }
-      }
-
-      fetchData()
-    }, [])
+        if (error) setError(error.message)
+        else setMenu(data as MenuItem[])
+    }
 
     useEffect(() => {
-      const fetchReservationData = async () => {
-        const { data, error } = await supabase.from('reservations').select('*')
-
-        if(error) {
-            setError(error.message)
-        } else {
-            setReservationList(data as Reservation[])
+        if (!authChecked) return
+        fetchData()
+        const fetchReservationData = async () => {
+            const { data, error } = await supabase.from('reservations').select('*')
+            if (error) setError(error.message)
+            else setReservationList(data as Reservation[])
         }
-      }
-
-      fetchReservationData()
-    }, [])
-
-
-    // Menu additon
+        fetchReservationData()
+    }, [authChecked])
 
     const [name, setName] = useState('')
     const [description, setDescription] = useState('')
     const [price, setPrice] = useState(1)
     const [category, setCategory] = useState('')
-    const [imageUrl, setImageUrl] = useState('')
     const [loading, setLoading] = useState(false)
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
 
     const handleMenuSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         setLoading(true)
+        setStatus('idle')
+
+        let uploadedImageUrl = ''
+
+        if (imageFile) {
+            const fileExt = imageFile.name.split('.').pop()
+            const fileName = `${Date.now()}.${fileExt}`
+
+            const { error: uploadError } = await supabase.storage
+                .from('menu-images')
+                .upload(fileName, imageFile)
+
+            if (uploadError) {
+                setStatus('error')
+                setLoading(false)
+                return
+            }
+
+            const { data } = supabase.storage
+                .from('menu-images')
+                .getPublicUrl(fileName)
+
+            uploadedImageUrl = data.publicUrl
+        }
 
         const { error } = await supabase
-         .from('menu_items')
-         .insert({
-            name,
-            description,
-            price,
-            category,
-            image_url: imageUrl
-         })
+            .from('menu_items')
+            .insert({
+                name,
+                description,
+                price,
+                category,
+                image_url: uploadedImageUrl
+            })
 
-         if(error) {
+        if (error) {
             setStatus("error")
-         } else {
+        } else {
             setStatus('success')
-            setName('')
-            setDescription('')
-            setPrice(1)
-            setCategory('')
-            setImageUrl('')
-         }
-    } 
-    
-    
-    
-    
-  return (
-    <div>
-        <h1 className="text-2xl font-bold mb-4">Admin Dashboard</h1>
-        <p>Welcome to the admin dashboard. Here you can manage reservations, view analytics, and configure settings.</p>
+            setName(''); setDescription(''); setPrice(1); setCategory(''); setImageFile(null)
+            fetchData()
+        }
+        setLoading(false)
+    }
 
-        {/* // Customers and Reservations Section */}
-        <div className="mt-6 p-4 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold mt-6 mb-2">Recent Reservations</h2>
-             <table className="w-full border-collapse">
-                <thead>
-                    <tr>
-                        <th className="border border-gray-300 p-2">Customer Name</th>
-                        <th className="border border-gray-300 p-2">Phone</th>
-                        <th className="border border-gray-300 p-2">Date</th>
-                        <th className="border border-gray-300 p-2">Time</th>
-                        <th className="border border-gray-300 p-2">Guests</th>
-                        <th className="border border-gray-300 p-2">Message</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {reservationList.map((Reservation) => (
-                        <tr key={Reservation.id}>
-                            <td className="border border-gray-300 p-2">{Reservation.name}</td>
-                            <td className="border border-gray-300 p-2">{Reservation.phone}</td>
-                            <td className="border border-gray-300 p-2">{new Date(Reservation.date).toLocaleDateString()}</td>
-                            <td className="border border-gray-300 p-2">{Reservation.time}</td>
-                            <td className="border border-gray-300 p-2">{Reservation.guests}</td>
-                            <td className="border border-gray-300 p-2">{Reservation.message}</td>
-                        </tr>
-                    ))}
-                </tbody>
-             </table>
-        </div>
+    if (!authChecked) return <p className="p-8 text-center">Checking authentication...</p>
 
-        {/* // Menu Management Section */}
-
-        <div className="mt-6 p-4 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-lg shadow-sm">
-            <h2 className="text-xl font-semibold mt-6 mb-2">Menu Management</h2>
-            <p>Here you can add, edit, or remove menu items.</p>
-            {/* Add new menu item */}
-            <form onSubmit={handleMenuSubmit} className="mt-4 p-4 border w-2/4 border-gray-300 rounded-lg">
-                <input type="text" placeholder="Dish Name" 
-                 value={name}
-                 onChange={(e) => setName(e.target.value)}
-                 className="p-2 border border-gray-300 rounded mb-2 w-full"
-                />
-                <input type="text" placeholder="Description" 
-                 value={description}
-                 onChange={(e) => setDescription(e.target.value)}
-                 className="p-2 border border-gray-300 rounded mb-2 w-full" 
-                />
-                <input type="number" placeholder="Price"
-                 value={price}
-                 onChange={(e) => setPrice(Number(e.target.value))}
-                 className="p-2 border border-gray-300 rounded mb-2 w-full"
-                />
-                <input type="text" placeholder="Category" 
-                 value={category}
-                 onChange={(e) => setCategory(e.target.value)}
-                 className="p-2 border border-gray-300 rounded mb-2 w-full" 
-                />
-                <input type="text" placeholder="Image URL"
-                 value={imageUrl}
-                 onChange={(e) => setImageUrl(e.target.value)}
-                 className="p-2 border border-gray-300 rounded mb-2 w-full"
-                />
-                
-                <button 
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                disabled={loading}
+    return (
+        <div className="max-w-7xl mx-auto p-6 md:p-10">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+                <h1 className="text-3xl md:text-4xl font-bold tracking-tight">Admin Dashboard</h1>
+                <button
+                    onClick={async () => {
+                        await supabase.auth.signOut()
+                        router.push('/admin')
+                    }}
+                    className="px-6 py-2.5 bg-red-600 text-white font-semibold rounded-lg hover:bg-red-700 transition-colors"
                 >
-                    {loading ? 'Adding Menu...' : 'Add Menu Item'}
+                    Logout
                 </button>
-
-                {status === 'success' && <p className="text-green-600 mt-2">Menu Added Successfully!</p>}
-                {status === 'error' && <p className='text-red-600 mt-2'>Failed to add menu</p>}
-
-            </form>
-
-            {/* Existing Menu Items */}
-            <div className="mt-6 p-4 border border-gray-300 rounded-lg w-full">
-                <h1 className="text-lg font-semibold mt-6 mb-2">Existing Menu Items</h1>
-                <table className="w-full border-collapse">
-                    <thead>
-                        <tr>
-                            <th className="border border-gray-300 p-2">Dish Name</th>
-                            <th className="border border-gray-300 p-2">Description</th>
-                            <th className="border border-gray-300 p-2">Price</th>
-                            <th className="border border-gray-300 p-2">Category</th>
-                            <th className="border border-gray-300 p-2">Image URL</th>
-                            <th className="border border-gray-300 p-2">Available</th>
-                            <th className="border border-gray-300 p-2">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {menu.map((menuItem) => (
-                            <tr key={menuItem.id}>
-                                <td className="border border-gray-300 p-2">{menuItem.name}</td>
-                                <td className="border border-gray-300 p-2">{menuItem.description}</td>
-                                <td className="border border-gray-300 p-2">{menuItem.price}</td>
-                                <td className="border border-gray-300 p-2">{menuItem.category}</td>
-                                <td className="border border-gray-300 p-2">{menuItem.image_url ? 'Food Image' :  menuItem.name}</td>
-                                <td className="border border-gray-300 p-2">
-                                    {menuItem.available ? "Yes" : "No"}
-                                </td>
-                                <td className="border border-gray-300 p-2">
-                                    <button className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">Edit</button>
-                                    <button className="px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700 ml-2">Delete</button>
-                                </td>
+            </div>
+            
+            <div className="mt-8 p-6 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm">
+                <h2 className="text-2xl font-bold mb-6">Recent Reservations</h2>
+                <div className="overflow-x-auto">
+                    <table className="w-full border-collapse text-base">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-900">
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Customer</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Phone</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Date</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Time</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Guests</th>
                             </tr>
-                        ))}
-                    </tbody>
-                </table>
+                        </thead>
+                        <tbody>
+                            {reservationList.map((res) => (
+                                <tr key={res.id}>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{res.name}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{res.phone}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{new Date(res.date).toLocaleDateString()}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{res.time}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{res.guests}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <div className="mt-10 p-6 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm">
+                <h2 className="text-2xl font-bold mb-6">Menu Management</h2>
+                <form onSubmit={handleMenuSubmit} className="p-6 border border-gray-200 dark:border-gray-800 rounded-2xl w-full lg:w-1/2">
+                    <input type="text" placeholder="Dish Name" value={name} onChange={(e) => setName(e.target.value)} className="p-3 text-sm border border-gray-300 rounded-lg mb-4 w-full dark:bg-gray-900" />
+                    <input type="text" placeholder="Description" value={description} onChange={(e) => setDescription(e.target.value)} className="p-3 text-sm border border-gray-300 rounded-lg mb-4 w-full dark:bg-gray-900" />
+                    <input type="number" placeholder="Price" value={price} onChange={(e) => setPrice(Number(e.target.value))} className="p-3 text-sm border border-gray-300 rounded-lg mb-4 w-full dark:bg-gray-900" />
+                    <input type="text" placeholder="Category" value={category} onChange={(e) => setCategory(e.target.value)} className="p-3 text-sm border border-gray-300 rounded-lg mb-4 w-full dark:bg-gray-900" />
+                    <input type="file" accept="image/*" onChange={(e) => setImageFile(e.target.files?.[0] || null)} className="p-2 text-sm border border-gray-300 rounded-lg mb-4 w-full" />
+
+                    <button className="px-6 py-3 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 transition-colors w-full" disabled={loading}>
+                        {loading ? 'Adding...' : 'Add Menu Item'}
+                    </button>
+                    {status === 'success' && <p className="text-sm text-green-600 mt-3">Menu Added Successfully!</p>}
+                    {status === 'error' && <p className='text-sm text-red-600 mt-3'>Failed to add menu</p>}
+                </form>
+
+                <div className="mt-10">
+                    <h3 className="text-xl font-bold mb-4">Existing Menu Items</h3>
+                    <table className="w-full border-collapse text-base">
+                        <thead>
+                            <tr className="bg-gray-50 dark:bg-gray-900">
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Dish Name</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Price</th>
+                                <th className="border border-gray-200 dark:border-gray-800 p-4 text-left">Category</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {menu.map((item) => (
+                                <tr key={item.id}>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{item.name}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{item.price}</td>
+                                    <td className="border border-gray-200 dark:border-gray-800 p-4">{item.category}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
             </div>
         </div>
-    </div>
-  )
+    )
 }
 
-export default page
+export default Page

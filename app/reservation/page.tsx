@@ -2,11 +2,9 @@
 
 import { Button } from "@/components/ui/button"
 import { supabase } from "@/lib/supabaseClient"
-import { useEffect, useState } from "react"
-
+import { useState } from "react"
 
 const Reservation = () => {
-
     const [name, setName] = useState('')
     const [phone, setPhone] = useState('')
     const [date, setDate] = useState('')
@@ -21,82 +19,89 @@ const Reservation = () => {
         setLoading(true)
         
         const { error } = await supabase
-         .from('reservations')
-         .insert({
-            name,
-            phone,
-            date,
-            time,
-            guests: Number(guests),
-            message: requests
-         })
+           .from('reservations')
+           .insert({
+             name,
+             phone,
+             date,
+             time,
+             guests: Number(guests),
+             message: requests
+           })
 
-         if (error) {
-            setStatus('error')
-         } else {
-            setStatus('success')
-            setName('')
-            setPhone('')
-            setDate('')
-            setTime('')
-            setGuests(1)
-            setRequests('')
-         }
+           if (error) {
+             setStatus('error')
+             setLoading(false)
+           } else {
+             setStatus('success')
+             setLoading(false)
+             setName(''); setPhone(''); setDate(''); setTime(''); setGuests(1); setRequests('')
+           }
     }
 
   return (
-    <div className="max-w-md mx-auto p-6 bg-white dark:bg-black border border-gray-200 dark:border-gray-800 rounded-2xl shadow-sm">
-      <h2 className="text-xl font-bold mb-6 text-gray-900 dark:text-white">Make a Reservation</h2>
-      
-      <form className="flex flex-col gap-4" onSubmit={handleSubmit}>
-        {/* Helper function to style inputs */}
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="name" className="text-sm font-medium text-gray-700 dark:text-gray-300">Name</label>
-          <input type="text"
-           id="name"
-           name="name"
-           value={name}
-           onChange={(e) => setName(e.target.value)}
-           required
-           className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent"
-            />
-        </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="phone" className="text-sm font-medium text-gray-700 dark:text-gray-300">Phone</label>
-          <input type="tel" id="phone" name="phone" value={phone} onChange={(e) => setPhone(e.target.value)} required className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent" />
-        </div>
-
-        <div className="grid grid-cols-2 gap-4">
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="date" className="text-sm font-medium text-gray-700 dark:text-gray-300">Date</label>
-            <input type="date" id="date" name="date" value={date} onChange={(e) => setDate(e.target.value)} required className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent" />
-          </div>
-          <div className="flex flex-col gap-1.5">
-            <label htmlFor="time" className="text-sm font-medium text-gray-700 dark:text-gray-300">Time</label>
-            <input type="time" id="time" name="time" value={time} onChange={(e) => setTime(e.target.value)} required className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent" />
+    <div className="w-full py-16 px-6 bg-white dark:bg-[#0a0a0a]">
+      <div className="max-w-5xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-12 items-start">
+        
+        {/* Left Side: Branding */}
+        <div className="flex flex-col gap-6 pt-4">
+          <h1 className="text-4xl md:text-5xl font-bold text-gray-900 dark:text-white tracking-tight">
+            Book your <span className="text-teal-600">table.</span>
+          </h1>
+          <p className="text-lg text-gray-600 dark:text-gray-400 leading-relaxed max-w-md">
+            Experience authentic flavors in the heart of Cox's Bazar. Reserve your spot today.
+          </p>
+          
+          <div className="p-6 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-100 dark:border-gray-800">
+            <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Need help?</p>
+            <p className="text-xl font-bold text-gray-900 dark:text-white">+880 123 456 789</p>
           </div>
         </div>
 
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="guests" className="text-sm font-medium text-gray-700 dark:text-gray-300">Number of Guests</label>
-          <input type="number" id="guests" name="guests" value={guests} onChange={(e) => setGuests(Number(e.target.value))} min="1" required className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent" />
+        {/* Right Side: Form - Standard Input Sizing */}
+        <div className="bg-white dark:bg-black p-8 md:p-10 border border-gray-200 dark:border-gray-800 rounded-3xl shadow-sm">
+          <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Full Name</label>
+                <input type="text" value={name} onChange={(e) => setName(e.target.value)} required className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Phone</label>
+                <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} required className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-5">
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Date</label>
+                <input type="date" value={date} onChange={(e) => setDate(e.target.value)} required className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Time</label>
+                <input type="time" value={time} onChange={(e) => setTime(e.target.value)} required className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+              </div>
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Guests</label>
+              <input type="number" value={guests} onChange={(e) => setGuests(Number(e.target.value))} min="1" required className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all" />
+            </div>
+
+            <div className="flex flex-col gap-2">
+              <label className="text-sm font-semibold text-gray-700 dark:text-gray-300">Requests</label>
+              <textarea value={requests} onChange={(e) => setRequests(e.target.value)} rows={2} className="p-3 text-base border rounded-xl border-gray-200 dark:border-gray-800 bg-gray-50 dark:bg-gray-900 focus:ring-2 focus:ring-teal-500 outline-none transition-all"></textarea>
+            </div>
+
+            <Button type="submit" className="w-full mt-2 h-12 rounded-xl text-base font-bold bg-teal-600 hover:bg-teal-700" disabled={loading}>
+              {loading ? 'Submitting...' : 'Confirm Reservation'}
+            </Button>
+
+            {status === 'success' && <p className="text-sm text-teal-600 text-center font-bold">Reservation confirmed!</p>}
+          </form>
         </div>
-
-        <div className="flex flex-col gap-1.5">
-          <label htmlFor="requests" className="text-sm font-medium text-gray-700 dark:text-gray-300">Special Requests</label>
-          <textarea id="requests" name="requests" value={requests} onChange={(e) => setRequests(e.target.value)} rows={4} className="p-2.5 border rounded-lg border-gray-300 dark:border-gray-700 bg-transparent"></textarea>
-        </div>
-
-        <Button type="submit" className="w-full mt-2 rounded-lg"
-         disabled={loading}
-        >
-            {loading ? 'submitting...' : 'Submit Reservation'}
-        </Button>
-
-        {status === 'success' && <p className="text-green-600 mt-2">Reservation successful!</p>}
-        {status === 'error' && <p className="text-red-600 mt-2">Failed to submit reservation. Please try again.</p>}
-      </form>
+      </div>
     </div>
   )
 }
